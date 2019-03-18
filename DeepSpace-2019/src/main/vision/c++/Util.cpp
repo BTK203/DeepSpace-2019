@@ -1,15 +1,15 @@
 #include "Vision.h"
-//#include "Settings.h"
 
 /**
  * Utils file for 2019 DeepSpace vision
+ * Written by: Brach Knutson
  */
 
+using namespace std;
 
-/** Tests a rotated rectangle to see if it could be part of a 2019 target.
+/** Tests a rotated rectangle to see if it could be part of a 2019 target. 
  * @return true if yes, false if no.
  */
-using namespace std;
 bool Util::IsElgible(cv::RotatedRect rect) {
     bool ratioTest;
     bool areaTest;
@@ -24,21 +24,15 @@ bool Util::IsElgible(cv::RotatedRect rect) {
     if(width > height) {
         aspect_ratio = height/width;
     } else {
-        aspect_ratio = width/height; //make sure aspect ratio is consistent so we don't have to have two different settings
+        aspect_ratio = width/height; //make sure aspect ratio is consistent so we don't have to have two different settings 
     }
     double ARMax = Settings::Aspect_Ratio_Max();
     double ARMin = Settings::Aspect_Ratio_Min();
     ratioTest = (aspect_ratio < ARMax && aspect_ratio > ARMin);
 
     //the area test
-    int areaMax = Settings::Area_Max();
-    int areaMin = Settings::Area_Min();
     int area = (int) (width * height);
-    
-    //cout << area << "\n";
-    //cout.flush();
-    
-    areaTest = (area < areaMax && area > areaMin);
+    areaTest = (area > Settings::MIN_AREA);
     
 
     //the angle test
@@ -67,12 +61,12 @@ bool Util::IsPair(cv::RotatedRect rect1, cv::RotatedRect rect2) {
     //make sure that the contours are in the right places (i.e. Right on the right, left on left.)
     if(Opposite_Angles) {
         bool angles_are_correct = false; //will be true if the contours are on the correct sides of each other
-        int distance_between_rects = rect1.center.x - rect2.center.x; //will be positive if rect1 is rightmost, negative if rect2 is rightmost
+        int distance_between_rects = rect1.center.x - rect2.center.x; //will be positive if rect1 is leftmost, negative if rect2 is leftmost
 
-        if(distance_between_rects > 0) //positive, rect1 is the rightmost rect
-            angles_are_correct = Settings::Closest_Angle(rect2.angle) == Settings::RIGHT_ANGLE;
+        if(distance_between_rects > 0) //positive, rect1 is the leftmost rect
+            angles_are_correct = Settings::Closest_Angle(rect2.angle) == Settings::LEFT_ANGLE;
         else
-            angles_are_correct = Settings::Closest_Angle(rect1.angle) == Settings::RIGHT_ANGLE;
+            angles_are_correct = Settings::Closest_Angle(rect1.angle) == Settings::LEFT_ANGLE;
 
         //now we can move on to the distance testing
         if(angles_are_correct) {
@@ -96,6 +90,8 @@ bool Util::IsPair(cv::RotatedRect rect1, cv::RotatedRect rect2) {
 /**
  * Assuming the passed rotated rect is a possible target, returns a scalar converting pixels
  * to inches.
+ * @param rectangle the cv::RotatedRect to use to calculate the scale
+ * @return a scalar value for converting pixels to inches
  */
 double Util::returnTrueDistanceScalar(cv::RotatedRect rectangle) {
     
@@ -103,4 +99,62 @@ double Util::returnTrueDistanceScalar(cv::RotatedRect rectangle) {
         return 5.5 / rectangle.size.height;
     else 
         return 5.5 / rectangle.size.width;
+}
+
+/**
+ * Computes the distance between the two given points, point1 and point2
+ * @return the horizontal distance between the two points.
+ */
+int Util::distance(cv::Point point1, cv::Point point2) {
+    return abs(point1.x - point2.x);
+}
+
+/**
+ * Compares the two given numbers and returns the biggest one.
+ * @return the biggest number, either num1 or num2
+ */
+int Util::WhichIsBigger(int num1, int num2) {
+    if(num1 > num2)
+        return num1;
+        
+    return num2;
+}
+
+/**
+ * Computes the horizontal and vertical offests of the given point (x and y), and the pixels to inches scalar.
+ * Assumes that the camera offset settings in Settings.h are being used as the offsets.
+ * @param x              The x-coordinate of the point to offset.
+ * @param y              The y-coordinate of the point to offset.
+ * @param pixelsToInches A pixels to inches scalar to use for offset.
+ * @return the result of the offset in a cv::Point 
+ */
+cv::Point Util::computeOffsets(int x, int y, double pixelsToInches) {
+    int offsetX = Settings::CAMERA_OFFSET_X / pixelsToInches; //get number of pixels to offset the center 
+    int offsetY = Settings::CAMERA_OFFSET_Y * pixelsToInches; //y pixels to offset the thing by
+    
+    int new_x = x - offsetX;
+    int new_y = y - offsetY;
+    
+    new_x += 15;
+    return cv::Point(new_x, new_y);
+}
+
+/**
+ * Computes the horizontal and vertical offsets of the given point(x and y), offsetX, offsetY, and 
+ * the pixels to inches scalar. Uses the given offset values instead of the ones in Settings.h
+ * @param x              The x-coordinate of the point to offset.
+ * @param y              The y-coordinate of the point to offset.
+ * @param offsetX        the amount of desired horizontal offset in inches.
+ * @param offsetY        the amount of desired vertical offset in inches.
+ * @param pixelsToInches a pixels to inches scalar to use for offset.
+ * @return the result of the offset in a cv::Point
+ */
+cv::Point Util::computeOffsets(int x, int y, double offsetX, double offsetY, double pixelsToInches) {
+    double offX = offsetX / (double)pixelsToInches; //get number of pixels to offset the center 
+    double offY = offsetY * (double)pixelsToInches; //y pixels to offset the thing by
+    
+    int new_x = x - offX;
+    int new_y = y - offY;
+    
+    return cv::Point(new_x, new_y);
 }
