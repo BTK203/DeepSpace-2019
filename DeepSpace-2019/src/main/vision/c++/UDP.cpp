@@ -33,12 +33,16 @@ UDP::UDP(string dest_ip, int port) {
     if(pton_result <= 0) 
         err("PTON FAILED");
 
-    //now connect
-    int connect_result = connect(this->sock, (sockaddr*) &this->server_address, sizeof(this->server_address));
-    if(connect_result < 0)
-        err("CONNECT FAILED");
+    //wait for the connect to succeed before we go
+    cout << "waiting to connect" << endl;
+    while(true) {
+        //now connect
+        int connect_result = connect(this->sock, (sockaddr*) &this->server_address, sizeof(this->server_address));
+        if(connect_result > -1)
+            break;
+    }
 
-    cout << "connection set up. We got em cheif.";
+    cout << "connection set up. We got em cheif." << endl;
 }
 
 /**
