@@ -18,7 +18,7 @@ void err(const char *msg) {
  * @param dest_ip a string containing the ip of the server in standard dot notation
  * @param port the port to connect on
  */
-UDP::UDP(string dest_ip, int port) {
+UDP::UDP(std::string dest_ip, int port) {
 
     this->sock = socket(AF_INET, SOCK_DGRAM, 0); //"0" for wildcard of what protocol is best
     if(this->sock < 0) //socket creation didnt be like that tho
@@ -33,27 +33,31 @@ UDP::UDP(string dest_ip, int port) {
     if(pton_result <= 0) 
         err("PTON FAILED");
 
-    //now connect
-    int connect_result = connect(this->sock, (sockaddr*) &this->server_address, sizeof(this->server_address));
-    if(connect_result < 0)
-        err("CONNECT FAILED");
+    //wait for the connect to succeed before we go
+    std::cout << "waiting to connect" << std::endl;
+    while(true) {
+        //now connect
+        int connect_result = connect(this->sock, (sockaddr*) &this->server_address, sizeof(this->server_address));
+        if(connect_result > -1)
+            break;
+    }
 
-    cout << "connection set up. We got em cheif.";
+    std::cout << "connection set up. We got em cheif." << std::endl;
 }
 
 /**
  * Sends the given message to the destination
  * @param msg a string containing the message to send
  */
-void UDP::Send(string msg) {
+void UDP::Send(std::string msg) {
     const char *buffer = msg.c_str();
     
     //cout << "sending " << buffer << endl;
     int send_result = send(this->sock, buffer, strlen(buffer), 0); //the big send
     if(send_result < 0)
         //err("SEND FAILED");
-        cout << "SEND FAILED!";
-        cout.flush();
+        std::cout << "SEND FAILED!";
+        std::cout.flush();
 }
 
 /**
